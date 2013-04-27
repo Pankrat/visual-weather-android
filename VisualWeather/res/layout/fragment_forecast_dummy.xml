@@ -11,6 +11,17 @@
     <TextView
         android:id="@+id/section_label"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:textIsSelectable="true" />
+    
+    <TextView 
+        android:id="@+id/temperature"
+        android:gravity="center"
+        android:layout_centerInParent="true"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textIsSelectable="true"
+        android:textSize="60sp"
+        android:textColor="#00a2b0" />
 
 </RelativeLayout>

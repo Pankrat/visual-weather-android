@@ -58,39 +58,49 @@ public class ForecastActivity extends FragmentActivity {
 	double longitude;
 
 	private JSONArray weatherForecast;
+	private long lastUpdate;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_forecast);
+		lastUpdate = 0;
+	}	
+	
+	@Override
+	protected void onResume() {
+		super.onResume();
+		Date now = new Date();
+		if (lastUpdate == 0 || now.getTime() - lastUpdate > 1000*60*60) {
+			// Get last known location
+			LocationManager locationManager = (LocationManager) this
+					.getSystemService(Context.LOCATION_SERVICE);
+			String locationProvider = LocationManager.NETWORK_PROVIDER;
+			Location lastKnownLocation = locationManager
+					.getLastKnownLocation(locationProvider);
+			latitude = lastKnownLocation.getLatitude();
+			longitude = lastKnownLocation.getLongitude();
 
-		// Get last known location
-		LocationManager locationManager = (LocationManager) this
-				.getSystemService(Context.LOCATION_SERVICE);
-		String locationProvider = LocationManager.NETWORK_PROVIDER;
-		Location lastKnownLocation = locationManager
-				.getLastKnownLocation(locationProvider);
-		latitude = lastKnownLocation.getLatitude();
-		longitude = lastKnownLocation.getLongitude();
-
-		// Reverse geo-coding (latitude/longitude to city)
-		Geocoder geo = new Geocoder(this);
-		try {
-			List<Address> addresses = geo.getFromLocation(latitude, longitude,
-					1);
-			if (addresses != null && addresses.size() > 0) {
-				Address address = addresses.get(0);
-				if (address.getSubLocality() != null) {
-					setTitle(address.getSubLocality());
-				} else if (address.getLocality() != null) {
-					setTitle(address.getLocality());
+			// Reverse geo-coding (latitude/longitude to city)
+			Geocoder geo = new Geocoder(this);
+			try {
+				List<Address> addresses = geo.getFromLocation(latitude, longitude,
+						1);
+				if (addresses != null && addresses.size() > 0) {
+					Address address = addresses.get(0);
+					if (address.getSubLocality() != null) {
+						setTitle(address.getSubLocality());
+					} else if (address.getLocality() != null) {
+						setTitle(address.getLocality());
+					}
 				}
+			} catch (IOException e) {
+				Log.e("LOCATION", "Impossible to connect to Geocoder", e);
 			}
-		} catch (IOException e) {
-			Log.e("LOCATION", "Impossible to connect to Geocoder", e);
+			GetWeatherTask task = new GetWeatherTask();
+			task.execute(latitude, longitude);
+			lastUpdate = now.getTime();
 		}
-		GetWeatherTask task = new GetWeatherTask();
-		task.execute(latitude, longitude);
 	}
 
 	@Override
@@ -156,6 +166,7 @@ public class ForecastActivity extends FragmentActivity {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
+			Log.i("WEATHER", "Update weather data");
 			return forecast;
 		}
 
@@ -239,6 +250,7 @@ public class ForecastActivity extends FragmentActivity {
 			View rootView = inflater.inflate(R.layout.fragment_forecast_dummy,
 					container, false);
 			textView = (TextView) rootView.findViewById(R.id.section_label);
+			TextView tempView = (TextView) rootView.findViewById(R.id.temperature);
 			String weather = getArguments().getString(ARG_FORECAST);
 			try {
 				JSONObject json = new JSONObject(weather);
@@ -246,6 +258,8 @@ public class ForecastActivity extends FragmentActivity {
 				Date date = new Date();
 				date.setTime(timestamp * 1000);
 				textView.setText(date.toString() + "\n" + weather);
+				Double temp = json.getDouble("temp");
+				tempView.setText(Integer.toString((int)Math.round(temp)) + "°C");
 			} catch (JSONException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
